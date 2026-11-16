@@ -1,0 +1,1067 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>対戦リバーシ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Zen+Old+Mincho:wght@700;900&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #edf1ec;
+        --panel: #ffffff;
+        --panel-2: #f4f7f3;
+        --ink: #16211a;
+        --ink-soft: #4c5a51;
+        --line: #d5ddd3;
+        --accent: #14663f;
+        --accent-ink: #ffffff;
+        --gold: #b8860b;
+        --gold-soft: #fdf3d7;
+        --board: #177245;
+        --board-dark: #0f5130;
+        --cell-line: rgba(6, 40, 22, 0.55);
+        --danger: #b3372c;
+        --shadow: 0 10px 30px rgba(16, 42, 28, 0.14);
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c130f;
+          --panel: #16211a;
+          --panel-2: #1c2a21;
+          --ink: #e9f1ea;
+          --ink-soft: #9db3a4;
+          --line: #2c3d32;
+          --accent: #2f9e63;
+          --accent-ink: #08130c;
+          --gold: #e0aa3e;
+          --gold-soft: #2e2410;
+          --board: #14603c;
+          --board-dark: #0b3d24;
+          --cell-line: rgba(2, 24, 12, 0.6);
+          --danger: #e0685c;
+          --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+          color-scheme: dark;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+      }
+      button, input { font-family: inherit; }
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
+
+      .wrap { max-width: 1060px; margin: 0 auto; padding: 20px 16px 48px; }
+
+      header.page-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 6px 0 18px; }
+      header.page-head h1 {
+        font-family: "Zen Old Mincho", "Hiragino Mincho ProN", serif;
+        font-weight: 900; font-size: clamp(26px, 5vw, 38px); margin: 0; letter-spacing: 0.04em;
+      }
+      header.page-head p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+
+      .layout { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+      @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
+
+      .panel {
+        background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+        padding: 18px; box-shadow: var(--shadow);
+      }
+      .panel h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: 0.06em; }
+      .panel h2 .sub { color: var(--ink-soft); font-weight: 500; font-size: 12px; letter-spacing: 0; margin-left: 6px; }
+
+      /* ---------- lobby ---------- */
+      .mode-block { border-top: 1px solid var(--line); padding: 14px 0 4px; }
+      .mode-block:first-of-type { border-top: none; padding-top: 2px; }
+      .mode-block h3 { font-size: 13px; margin: 0 0 8px; color: var(--ink-soft); letter-spacing: 0.08em; }
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        border: 1px solid var(--line); background: var(--panel-2); color: var(--ink);
+        border-radius: 10px; padding: 10px 16px; font-size: 15px; font-weight: 700;
+        cursor: pointer; min-height: 44px; transition: background .15s, transform .05s;
+      }
+      .btn:active { transform: scale(0.98); }
+      .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+      .btn.danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+      .btn.ghost { background: transparent; }
+      .btn:disabled { opacity: .45; cursor: not-allowed; }
+      .btn.block { width: 100%; }
+      .btn.small { min-height: 38px; padding: 6px 12px; font-size: 13px; }
+
+      .join-row { display: flex; gap: 8px; }
+      .join-row input {
+        flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 10px;
+        background: var(--panel); color: var(--ink); font-size: 20px; font-weight: 900;
+        letter-spacing: 0.3em; text-transform: uppercase; text-align: center; padding: 8px 6px;
+      }
+      .join-row input::placeholder { letter-spacing: 0.12em; font-size: 14px; font-weight: 500; color: var(--ink-soft); }
+
+      .code-display {
+        background: var(--gold-soft); border: 1.5px dashed var(--gold); border-radius: 12px;
+        padding: 14px; text-align: center; margin: 10px 0;
+      }
+      .code-display .code {
+        font-size: 38px; font-weight: 900; letter-spacing: 0.35em; margin: 2px 0 8px; padding-left: 0.35em;
+      }
+      .code-display .hint { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 10px; line-height: 1.6; }
+
+      .seg { display: flex; gap: 8px; }
+      .seg .btn { flex: 1; }
+      .seg .btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+      .status-line { font-size: 13.5px; line-height: 1.7; color: var(--ink-soft); margin: 10px 0 0; min-height: 1.7em; }
+      .status-line.err { color: var(--danger); font-weight: 700; }
+      .status-line.ok { color: var(--accent); font-weight: 700; }
+
+      /* ---------- game side ---------- */
+      .scorebar { display: flex; gap: 10px; margin-bottom: 14px; }
+      .score-card {
+        flex: 1; display: flex; align-items: center; gap: 10px;
+        background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px;
+        transition: box-shadow .2s, border-color .2s;
+      }
+      .score-card.turn-now { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold) inset; }
+      .score-card .who { font-size: 13px; color: var(--ink-soft); line-height: 1.3; }
+      .score-card .who b { color: var(--ink); font-size: 14px; }
+      .score-card .num { margin-left: auto; font-size: 26px; font-weight: 900; }
+      .disc-mini { width: 26px; height: 26px; border-radius: 50%; flex: none; }
+      .disc-mini.black { background: radial-gradient(circle at 35% 30%, #4a4a4a, #0a0a0a 70%); box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+      .disc-mini.white { background: radial-gradient(circle at 35% 30%, #ffffff, #cfd2cc 75%); box-shadow: 0 2px 4px rgba(0,0,0,.3); border: 1px solid #b9bcb4; }
+
+      .turn-banner {
+        border-radius: 10px; padding: 10px 14px; font-weight: 700; font-size: 15px; margin-bottom: 14px;
+        background: var(--panel-2); border: 1px solid var(--line); text-align: center; min-height: 44px;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .turn-banner.result { background: var(--gold-soft); border-color: var(--gold); font-size: 17px; }
+
+      .board-frame {
+        background: var(--board-dark); padding: clamp(8px, 2vw, 14px); border-radius: 16px;
+        box-shadow: var(--shadow); max-width: 600px; margin: 0 auto;
+      }
+      .board {
+        display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px;
+        background: var(--board-dark); aspect-ratio: 1 / 1;
+      }
+      .cell {
+        position: relative; border: none; border-radius: 4px; background: var(--board);
+        box-shadow: inset 0 0 0 1px var(--cell-line); cursor: pointer; padding: 0;
+        display: flex; align-items: center; justify-content: center; min-height: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .cell:disabled { cursor: default; }
+      .cell.playable { cursor: pointer; }
+      .cell.playable:hover { background: #1d8550; }
+      @media (prefers-color-scheme: dark) { .cell.playable:hover { background: #1a7047; } }
+      .cell .hint-dot {
+        width: 26%; height: 26%; border-radius: 50%;
+        border: 2px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.14);
+        pointer-events: none;
+      }
+      .cell .hint-num {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        font-size: clamp(9px, 2.4vw, 13px); font-weight: 900; color: rgba(255,255,255,0.85); pointer-events: none;
+      }
+      .cell.last-move::after {
+        content: ""; position: absolute; width: 12%; height: 12%; border-radius: 50%;
+        background: var(--gold); bottom: 7%; right: 7%; box-shadow: 0 0 0 2px rgba(0,0,0,.25);
+      }
+      .disc {
+        width: 84%; height: 84%; border-radius: 50%; pointer-events: none;
+        transform-style: preserve-3d;
+      }
+      .disc.black { background: radial-gradient(circle at 35% 30%, #555, #060606 72%); box-shadow: 0 3px 6px rgba(0,0,0,.45), inset 0 -3px 6px rgba(0,0,0,.6); }
+      .disc.white { background: radial-gradient(circle at 35% 30%, #ffffff, #ccd0c8 78%); box-shadow: 0 3px 6px rgba(0,0,0,.35), inset 0 -3px 6px rgba(0,0,0,.12); border: 1px solid #b4b8ae; }
+      .disc.placed { animation: placeIn .22s ease-out; }
+      .disc.flipping { animation: flipDisc .38s ease-in-out; }
+      @keyframes placeIn { 0% { transform: scale(1.35); opacity: .4; } 100% { transform: scale(1); opacity: 1; } }
+      @keyframes flipDisc { 0% { transform: rotateY(0deg); } 50% { transform: rotateY(88deg); } 100% { transform: rotateY(0deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        .disc.placed, .disc.flipping { animation: none; }
+      }
+
+      .coord-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; max-width: 600px; margin: 6px auto 0; padding: 0 clamp(8px, 2vw, 14px); }
+      .coord-row span { text-align: center; font-size: 11px; color: var(--ink-soft); font-weight: 700; }
+
+      .game-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+      .notice {
+        border: 1px solid var(--gold); background: var(--gold-soft); border-radius: 10px;
+        padding: 12px 14px; margin-top: 14px; font-size: 14px; line-height: 1.6;
+      }
+      .notice .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+      .log-panel { margin-top: 20px; }
+      .log-list { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; font-size: 13.5px; }
+      .log-list li { padding: 5px 2px; border-bottom: 1px dashed var(--line); display: flex; gap: 10px; }
+      .log-list li .n { color: var(--ink-soft); width: 2.2em; flex: none; }
+      .log-empty { color: var(--ink-soft); font-size: 13px; }
+
+      .howto { margin-top: 20px; font-size: 13.5px; line-height: 1.8; color: var(--ink-soft); }
+      .howto b { color: var(--ink); }
+      .hidden { display: none !important; }
+
+      .pulse { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); margin-right: 6px; animation: pulseDot 1.2s ease-in-out infinite; vertical-align: middle; }
+      @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+      @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="page-head">
+        <h1>対戦リバーシ</h1>
+        <p>ルームコードで友達とオンライン対戦 ／ 同じ画面の2人対戦 ／ CPU対戦</p>
+      </header>
+
+      <div class="layout">
+        <!-- ======= left: lobby / session panel ======= -->
+        <section class="panel" id="lobbyPanel">
+          <h2>対戦をはじめる</h2>
+
+          <div id="lobbyHome">
+            <div class="mode-block">
+              <h3>オンライン対戦（ルームコード）</h3>
+              <button class="btn primary block" id="btnCreate">ルームを作る（黒・先手）</button>
+              <div style="height:10px"></div>
+              <div class="join-row">
+                <input id="inputCode" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
+                       maxlength="6" placeholder="コードを入力" aria-label="ルームコード" />
+                <button class="btn" id="btnJoin">参加</button>
+              </div>
+              <p class="status-line" id="netStatus"></p>
+            </div>
+
+            <div class="mode-block">
+              <h3>オフライン対戦</h3>
+              <div class="seg" role="group" aria-label="オフライン対戦の種類">
+                <button class="btn" id="btnLocal">2人で対戦</button>
+                <button class="btn" id="btnCpu">CPUと対戦</button>
+              </div>
+              <p class="status-line">同じ画面で交互に打つか、CPU（白）と対戦します。</p>
+            </div>
+          </div>
+
+          <div id="lobbyWaiting" class="hidden">
+            <p style="margin:0;font-weight:700;">ルームを作成しました</p>
+            <div class="code-display">
+              <div class="code" id="roomCodeText">------</div>
+              <p class="hint">このページの公開リンクと、このコードを相手に伝えてください。<br />相手がリンクを開いてコードを入れると対戦が始まります。</p>
+              <button class="btn small" id="btnCopyCode">コードをコピー</button>
+            </div>
+            <p class="status-line" id="waitStatus"><span class="pulse"></span>データベースにルームを登録しています…</p>
+            <button class="btn block hidden" id="btnRetryRoom" style="margin-bottom:8px;">再試行する</button>
+            <button class="btn ghost block" id="btnCancelRoom">ルームを閉じる</button>
+          </div>
+
+          <div id="sessionInfo" class="hidden">
+            <h2 style="margin-bottom:6px;">対戦中</h2>
+            <p class="status-line" id="sessionText" style="margin-top:0;"></p>
+            <div class="game-actions">
+              <button class="btn danger" id="btnResign">投了する</button>
+              <button class="btn" id="btnRematch">再戦する</button>
+              <button class="btn ghost" id="btnLeave">ロビーに戻る</button>
+            </div>
+            <div class="notice hidden" id="rematchNotice">
+              <span id="rematchNoticeText">相手が再戦を希望しています。</span>
+              <div class="row">
+                <button class="btn primary small" id="btnRematchAccept">再戦に応じる</button>
+                <button class="btn small" id="btnRematchDecline">断る</button>
+              </div>
+            </div>
+            <div class="notice hidden" id="confirmResign">
+              本当に投了しますか？
+              <div class="row">
+                <button class="btn danger small" id="btnResignYes">投了する</button>
+                <button class="btn small" id="btnResignNo">やめる</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="howto">
+            <b>遊び方</b>：相手の石を縦・横・斜めで挟むと、挟んだ石が全部自分の色に裏返ります。置ける場所がないときは自動でパス。両者とも置けなくなったら終了し、石の多い方が勝ちです。数字はそのマスに置いたときに返せる石の数です。
+          </div>
+        </section>
+
+        <!-- ======= right: game ======= -->
+        <section>
+          <div class="scorebar">
+            <div class="score-card" id="cardBlack">
+              <div class="disc-mini black"></div>
+              <div class="who"><b>黒</b><br /><span id="labelBlack">先手</span></div>
+              <div class="num" id="countBlack">2</div>
+            </div>
+            <div class="score-card" id="cardWhite">
+              <div class="disc-mini white"></div>
+              <div class="who"><b>白</b><br /><span id="labelWhite">後手</span></div>
+              <div class="num" id="countWhite">2</div>
+            </div>
+          </div>
+
+          <div class="turn-banner" id="turnBanner">モードを選ぶと対戦が始まります</div>
+
+          <div class="board-frame">
+            <div class="board" id="board" role="grid" aria-label="リバーシ盤面"></div>
+          </div>
+          <div class="coord-row" aria-hidden="true">
+            <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span>
+          </div>
+
+          <div class="panel log-panel">
+            <h2>棋譜 <span class="sub">これまでの手</span></h2>
+            <ul class="log-list" id="logList"></ul>
+            <p class="log-empty" id="logEmpty">まだ手がありません。</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+    (function () {
+      "use strict";
+      var EMPTY = 0, BLACK = 1, WHITE = 2;
+      var DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+      var CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+      // ---------- DOM ----------
+      function $(id) { return document.getElementById(id); }
+      var boardEl = $("board"), bannerEl = $("turnBanner");
+      var countBlackEl = $("countBlack"), countWhiteEl = $("countWhite");
+      var cardBlack = $("cardBlack"), cardWhite = $("cardWhite");
+      var labelBlack = $("labelBlack"), labelWhite = $("labelWhite");
+      var logList = $("logList"), logEmpty = $("logEmpty");
+      var netStatus = $("netStatus");
+
+      // ---------- game state ----------
+      var board = null;          // Array(64)
+      var turn = BLACK;
+      var gameActive = false;
+      var gameOver = false;
+      var lastMoveIdx = -1;
+      var moveCount = 0;
+      var history = [];          // {n, color, label}
+      var animPlaced = -1;       // index placed this render
+      var animFlips = {};        // index -> true for discs flipped this render
+
+      // ---------- session state ----------
+      var mode = "idle";         // idle | online | local | cpu
+      var myColor = null;        // online: BLACK or WHITE; cpu: BLACK; local: null
+      var cpuColor = WHITE;
+      var isHost = false, roomCode = "";
+      var hostColor = BLACK, guestJoined = false;
+      var rematchBy = "", rematchDeclinedFlag = false, lastResigned = null;
+      var lastHbHost = 0, lastHbGuest = 0, netAttempt = 0;
+      var rematchRequestedByMe = false;
+
+      function other(c) { return c === BLACK ? WHITE : BLACK; }
+      function colorName(c) { return c === BLACK ? "黒" : "白"; }
+      function coordLabel(i) { return "ABCDEFGH"[i % 8] + (Math.floor(i / 8) + 1); }
+      function genCode() {
+        var code = "";
+        for (var i = 0; i < 6; i++) code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+        return code;
+      }
+
+      function freshBoard() {
+        var b = new Array(64).fill(EMPTY);
+        b[27] = WHITE; b[28] = BLACK; b[35] = BLACK; b[36] = WHITE;
+        return b;
+      }
+      function flipsFor(bd, idx, color) {
+        if (bd[idx] !== EMPTY) return null;
+        var r = Math.floor(idx / 8), c = idx % 8, opp = other(color), all = [];
+        for (var d = 0; d < 8; d++) {
+          var dr = DIRS[d][0], dc = DIRS[d][1], line = [];
+          var nr = r + dr, nc = c + dc;
+          while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && bd[nr * 8 + nc] === opp) {
+            line.push(nr * 8 + nc); nr += dr; nc += dc;
+          }
+          if (line.length && nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && bd[nr * 8 + nc] === color) {
+            all = all.concat(line);
+          }
+        }
+        return all.length ? all : null;
+      }
+      function legalMoves(bd, color) {
+        var res = [];
+        for (var i = 0; i < 64; i++) {
+          var f = flipsFor(bd, i, color);
+          if (f) res.push({ idx: i, flips: f });
+        }
+        return res;
+      }
+      function countDiscs(bd) {
+        var b = 0, w = 0;
+        for (var i = 0; i < 64; i++) { if (bd[i] === BLACK) b++; else if (bd[i] === WHITE) w++; }
+        return { black: b, white: w };
+      }
+
+      // ---------- turn flow ----------
+      function startGame(newMode, newMyColor) {
+        mode = newMode; myColor = newMyColor;
+        board = freshBoard(); turn = BLACK;
+        gameActive = true; gameOver = false;
+        lastMoveIdx = -1; moveCount = 0; history = [];
+        animPlaced = -1; animFlips = {};
+        rematchRequestedByMe = false;
+        rematchBy = ""; rematchDeclinedFlag = false; lastResigned = null;
+        hideRematchNotice(); hideConfirmResign();
+        updateLabels(); render(); setBanner(turnText());
+      }
+      function turnText() {
+        if (mode === "online") {
+          return turn === myColor ? "あなたの番です（" + colorName(turn) + "）" : "相手の番です（" + colorName(turn) + "）…";
+        }
+        if (mode === "cpu") {
+          return turn === cpuColor ? "CPUが考え中…（白）" : "あなたの番です（黒）";
+        }
+        return colorName(turn) + "の番です";
+      }
+      function isInteractiveTurn() {
+        if (!gameActive || gameOver) return false;
+        if (mode === "local") return true;
+        if (mode === "cpu") return turn !== cpuColor;
+        if (mode === "online") return turn === myColor && onlineActive;
+        return false;
+      }
+      function doMove(idx, byRemote) {
+        var mv = null, moves = legalMoves(board, turn);
+        for (var i = 0; i < moves.length; i++) if (moves[i].idx === idx) { mv = moves[i]; break; }
+        if (!mv) return false;
+        var placedColor = turn;
+        board[idx] = placedColor;
+        animFlips = {};
+        mv.flips.forEach(function (f) { board[f] = placedColor; animFlips[f] = true; });
+        animPlaced = idx; lastMoveIdx = idx; moveCount++;
+        history.push({ n: moveCount, color: placedColor, label: coordLabel(idx) });
+        advanceTurn();
+        if (mode === "online" && !byRemote) pushState();
+        return true;
+      }
+      function advanceTurn() {
+        var next = other(turn);
+        var nextMoves = legalMoves(board, next);
+        if (nextMoves.length) {
+          turn = next;
+          render(); setBanner(turnText()); maybeCpu();
+          return;
+        }
+        var curMoves = legalMoves(board, turn);
+        if (curMoves.length) {
+          // next player passes
+          history.push({ n: null, color: next, label: "パス（置ける場所なし）" });
+          render();
+          setBanner(colorName(next) + "は置ける場所がないためパス。続けて" + colorName(turn) + "の番です");
+          maybeCpu();
+          return;
+        }
+        endGame(null);
+      }
+      function endGame(resignedColor) {
+        gameOver = true;
+        lastResigned = resignedColor || null;
+        var cnt = countDiscs(board);
+        var msg;
+        if (resignedColor) {
+          var winner = other(resignedColor);
+          msg = colorName(resignedColor) + "の投了。" + colorName(winner) + "の勝ちです（黒 " + cnt.black + " − 白 " + cnt.white + "）";
+        } else if (cnt.black === cnt.white) {
+          msg = "引き分けです（黒 " + cnt.black + " − 白 " + cnt.white + "）";
+        } else {
+          var w2 = cnt.black > cnt.white ? BLACK : WHITE;
+          msg = colorName(w2) + "の勝ちです（黒 " + cnt.black + " − 白 " + cnt.white + "）";
+        }
+        if (mode === "online") {
+          if (resignedColor) msg += resignedColor === myColor ? "（あなたが投了しました）" : "（相手が投了しました）";
+          else msg += (cnt.black !== cnt.white) ? (((cnt.black > cnt.white ? BLACK : WHITE) === myColor) ? "　あなたの勝ち！" : "　あなたの負け…") : "";
+        }
+        render(); setBanner(msg, true);
+      }
+      function maybeCpu() {
+        if (mode !== "cpu" || gameOver || !gameActive) return;
+        if (turn !== cpuColor) return;
+        setTimeout(function () {
+          if (mode !== "cpu" || gameOver || turn !== cpuColor) return;
+          var mv = pickCpuMove();
+          if (mv) doMove(mv.idx, false);
+        }, 550);
+      }
+      var WEIGHTS = [
+        120,-20, 20,  5,  5, 20,-20,120,
+        -20,-40, -5, -5, -5, -5,-40,-20,
+         20, -5, 15,  3,  3, 15, -5, 20,
+          5, -5,  3,  3,  3,  3, -5,  5,
+          5, -5,  3,  3,  3,  3, -5,  5,
+         20, -5, 15,  3,  3, 15, -5, 20,
+        -20,-40, -5, -5, -5, -5,-40,-20,
+        120,-20, 20,  5,  5, 20,-20,120
+      ];
+      function pickCpuMove() {
+        var moves = legalMoves(board, cpuColor);
+        if (!moves.length) return null;
+        var best = null, bestScore = -Infinity;
+        moves.forEach(function (mv) {
+          var sim = board.slice();
+          sim[mv.idx] = cpuColor;
+          mv.flips.forEach(function (f) { sim[f] = cpuColor; });
+          var oppMoves = legalMoves(sim, other(cpuColor)).length;
+          var score = WEIGHTS[mv.idx] + mv.flips.length * 2 - oppMoves * 3 + Math.random() * 2;
+          if (score > bestScore) { bestScore = score; best = mv; }
+        });
+        return best;
+      }
+
+      // ---------- rendering ----------
+      function setBanner(text, isResult) {
+        bannerEl.textContent = text;
+        bannerEl.classList.toggle("result", !!isResult);
+      }
+      function updateLabels() {
+        if (mode === "online") {
+          labelBlack.textContent = myColor === BLACK ? "あなた（ホスト）" : "相手";
+          labelWhite.textContent = myColor === WHITE ? "あなた（ゲスト）" : "相手";
+        } else if (mode === "cpu") {
+          labelBlack.textContent = "あなた";
+          labelWhite.textContent = "CPU";
+        } else if (mode === "local") {
+          labelBlack.textContent = "プレイヤー1";
+          labelWhite.textContent = "プレイヤー2";
+        } else {
+          labelBlack.textContent = "先手";
+          labelWhite.textContent = "後手";
+        }
+      }
+      function render() {
+        if (!board) board = freshBoard();
+        var cnt = countDiscs(board);
+        countBlackEl.textContent = cnt.black;
+        countWhiteEl.textContent = cnt.white;
+        cardBlack.classList.toggle("turn-now", gameActive && !gameOver && turn === BLACK);
+        cardWhite.classList.toggle("turn-now", gameActive && !gameOver && turn === WHITE);
+
+        var interactive = isInteractiveTurn();
+        var hints = {};
+        if (interactive) {
+          legalMoves(board, turn).forEach(function (m) { hints[m.idx] = m.flips.length; });
+        }
+        boardEl.innerHTML = "";
+        for (var i = 0; i < 64; i++) {
+          (function (idx) {
+            var cell = document.createElement("button");
+            cell.type = "button";
+            cell.className = "cell";
+            cell.setAttribute("role", "gridcell");
+            cell.setAttribute("aria-label", coordLabel(idx));
+            if (idx === lastMoveIdx) cell.classList.add("last-move");
+            var v = board[idx];
+            if (v !== EMPTY) {
+              var disc = document.createElement("div");
+              disc.className = "disc " + (v === BLACK ? "black" : "white");
+              if (idx === animPlaced) disc.classList.add("placed");
+              else if (animFlips[idx]) disc.classList.add("flipping");
+              cell.appendChild(disc);
+              cell.disabled = true;
+            } else if (hints[idx] !== undefined) {
+              cell.classList.add("playable");
+              var dot = document.createElement("div"); dot.className = "hint-dot";
+              var num = document.createElement("div"); num.className = "hint-num"; num.textContent = hints[idx];
+              cell.appendChild(dot); cell.appendChild(num);
+              cell.addEventListener("click", function () { onCellChosen(idx); });
+            } else {
+              cell.disabled = true;
+            }
+            boardEl.appendChild(cell);
+          })(i);
+        }
+        animPlaced = -1; animFlips = {};
+
+        logList.innerHTML = "";
+        history.forEach(function (h) {
+          var li = document.createElement("li");
+          var n = document.createElement("span"); n.className = "n"; n.textContent = h.n ? h.n + "." : "―";
+          var t = document.createElement("span"); t.textContent = colorName(h.color) + "：" + h.label;
+          li.appendChild(n); li.appendChild(t);
+          logList.appendChild(li);
+        });
+        logEmpty.style.display = history.length ? "none" : "";
+        logList.scrollTop = logList.scrollHeight;
+      }
+      function onCellChosen(idx) {
+        if (!isInteractiveTurn()) return;
+        doMove(idx, false);
+      }
+
+      // ---------- lobby UI switching ----------
+      function showLobbyHome() {
+        $("lobbyHome").classList.remove("hidden");
+        $("lobbyWaiting").classList.add("hidden");
+        $("sessionInfo").classList.add("hidden");
+      }
+      function showWaiting() {
+        $("lobbyHome").classList.add("hidden");
+        $("lobbyWaiting").classList.remove("hidden");
+        $("sessionInfo").classList.add("hidden");
+        $("roomCodeText").textContent = roomCode;
+      }
+      function showSession(text) {
+        $("lobbyHome").classList.add("hidden");
+        $("lobbyWaiting").classList.add("hidden");
+        $("sessionInfo").classList.remove("hidden");
+        $("sessionText").textContent = text;
+      }
+      function setNetStatus(text, cls) {
+        netStatus.textContent = text || "";
+        netStatus.className = "status-line" + (cls ? " " + cls : "");
+      }
+      // Unexpected errors must never fail silently: show them on screen.
+      function showError(context, err) {
+        var msg = context + "（" + (err && err.message ? err.message : err) + "）";
+        if (!$("lobbyWaiting").classList.contains("hidden")) {
+          setWaitStatus(msg, "err", false, false);
+        } else {
+          setNetStatus(msg, "err");
+        }
+      }
+      function hideRematchNotice() { $("rematchNotice").classList.add("hidden"); }
+      function hideConfirmResign() { $("confirmResign").classList.add("hidden"); }
+
+      // ---------- online (Firebase Realtime Database, plain HTTPS REST) ----------
+      // No Firebase SDK / WebSocket: state is synced with fetch() against the
+      // RTDB REST endpoint. Full game state lives at /rooms/<code>; the peer
+      // polls about every 2 seconds and applies states with a newer seq.
+      var FB_DB_URL = "https://muze-reversi-default-rtdb.asia-southeast1.firebasedatabase.app";
+      var stateSeq = 0;          // seq of the last state we wrote or applied
+      var onlineActive = false;  // a room is registered / joined
+      var pollTimer = null, hbCounter = 0, oppStale = false;
+
+      function fbRoomUrl() { return FB_DB_URL + "/rooms/" + roomCode + ".json"; }
+      // Requests are kept CORS-"simple" on purpose: reads carry no custom
+      // headers at all (exactly like opening the URL directly in a tab),
+      // and writes use text/plain, a CORS-safelisted content type. That way
+      // the browser never sends a preflight (OPTIONS) request, which some
+      // networks (e.g. school Wi-Fi) appear to drop, hanging every call
+      // until the timeout. RTDB parses the JSON body regardless of the
+      // declared content type (verified against the live database).
+      // Failures are classified so the UI can say what actually happened:
+      // kind "timeout" (our own deadline hit), "network" (the browser or
+      // the network stopped the request) or "http" (database error reply).
+      function fbFetch(method, body, timeoutMs) {
+        var ctrl = ("AbortController" in window) ? new AbortController() : null;
+        var timer = null, timedOut = false;
+        if (ctrl) timer = setTimeout(function () { timedOut = true; try { ctrl.abort(); } catch (e) {} }, timeoutMs || 10000);
+        var opts = { method: method };
+        if (body !== undefined && body !== null) {
+          opts.headers = { "Content-Type": "text/plain;charset=UTF-8" };
+          opts.body = JSON.stringify(body);
+        }
+        if (ctrl) opts.signal = ctrl.signal;
+        return fetch(fbRoomUrl(), opts).then(function (r) {
+          if (timer) clearTimeout(timer);
+          if (!r.ok) {
+            var he = new Error("データベースがエラーを返しました（HTTP " + r.status + "）");
+            he.kind = "http"; he.status = r.status;
+            throw he;
+          }
+          return r.json();
+        }, function (e) {
+          if (timer) clearTimeout(timer);
+          if (timedOut || (e && e.name === "AbortError")) {
+            var te = new Error("応答が時間内に返りませんでした（タイムアウト）");
+            te.kind = "timeout";
+            throw te;
+          }
+          var ne = new Error("通信がブラウザまたは回線側で止められました");
+          ne.kind = "network";
+          throw ne;
+        });
+      }
+      function fbErrorText(err, what) {
+        if (err && err.kind === "timeout") return what + "が時間内に完了しませんでした（タイムアウト）。通信環境を確認して再試行してください。";
+        if (err && err.kind === "http") return what + "に失敗しました：" + err.message + "。しばらく待って再試行してください。";
+        if (err && err.kind === "network") return what + "に失敗しました：通信がブラウザまたは回線側で止められました。ブラウザのシールド設定やネットワークを確認して再試行してください。";
+        return what + "に失敗しました（" + (err && err.message ? err.message : err) + "）。再試行してください。";
+      }
+      function myRole() { return isHost ? "host" : "guest"; }
+      function peerRole() { return isHost ? "guest" : "host"; }
+      function buildState(status) {
+        if (isHost) lastHbHost = Date.now(); else lastHbGuest = Date.now();
+        return {
+          v: 1,
+          board: board ? board.slice() : freshBoard(),
+          turn: turn,
+          seq: stateSeq,
+          status: status,
+          hostColor: hostColor,
+          guestJoined: guestJoined,
+          lastMove: lastMoveIdx,
+          moveCount: moveCount,
+          history: history,
+          resignedBy: lastResigned || 0,
+          rematchBy: rematchBy,
+          rematchDeclined: rematchDeclinedFlag,
+          hbHost: lastHbHost,
+          hbGuest: lastHbGuest,
+          updatedAt: Date.now()
+        };
+      }
+      // Write the full current state with the next seq number. Returns the
+      // fetch promise so callers that must know the write landed (room
+      // registration) can wait for it instead of assuming success.
+      function writeState(status) {
+        stateSeq++;
+        var st = buildState(status || (gameOver ? "over" : "playing"));
+        return fbFetch("PUT", st, 10000);
+      }
+      function pushState(status) {
+        if (!onlineActive) return;
+        writeState(status).catch(function () {
+          setTimeout(function () {
+            if (onlineActive) writeState(status).catch(function () {});
+          }, 1200);
+        });
+      }
+      function sendHeartbeat() {
+        var patch = {};
+        if (isHost) { lastHbHost = Date.now(); patch.hbHost = lastHbHost; }
+        else { lastHbGuest = Date.now(); patch.hbGuest = lastHbGuest; }
+        fbFetch("PATCH", patch, 8000).catch(function () {});
+      }
+      function startPolling() {
+        stopPolling();
+        pollTimer = setInterval(pollOnce, 2000);
+      }
+      function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      }
+      function destroyNet() {
+        netAttempt++;
+        onlineActive = false;
+        stopPolling();
+        oppStale = false;
+      }
+      function deleteRoom() {
+        if (!roomCode) return;
+        fbFetch("DELETE", null, 8000).catch(function () {});
+      }
+      function pollOnce() {
+        if (!onlineActive || !roomCode) return;
+        hbCounter++;
+        if (hbCounter % 3 === 0) sendHeartbeat();
+        var attempt = netAttempt;
+        fbFetch("GET", null, 8000).then(function (rs) {
+          if (!onlineActive || attempt !== netAttempt) return;
+          if (!rs) { onRoomGone(); return; }
+          if (rs.hbHost) lastHbHost = rs.hbHost;
+          if (rs.hbGuest) lastHbGuest = rs.hbGuest;
+          checkPeerStale(rs);
+          if (typeof rs.seq === "number" && rs.seq > stateSeq) applyRemoteState(rs);
+        }).catch(function () { /* transient failure; the next poll retries */ });
+      }
+      function checkPeerStale(rs) {
+        if (!gameActive || gameOver) return;
+        var peerHb = isHost ? (rs.hbGuest || 0) : (rs.hbHost || 0);
+        if (!peerHb) return;
+        var stale = Date.now() - peerHb > 15000;
+        if (stale && !oppStale) {
+          oppStale = true;
+          setBanner("相手の応答が途絶えています。回線の復帰を待っています…");
+        } else if (!stale && oppStale) {
+          oppStale = false;
+          setBanner(turnText());
+        }
+      }
+      function applyRemoteState(rs) {
+        var i, j;
+        if (!Array.isArray(rs.board) || rs.board.length !== 64) { stateSeq = rs.seq; return; }
+        for (i = 0; i < 64; i++) {
+          if (rs.board[i] !== 0 && rs.board[i] !== 1 && rs.board[i] !== 2) { stateSeq = rs.seq; return; }
+        }
+        hostColor = rs.hostColor === WHITE ? WHITE : BLACK;
+        guestJoined = !!rs.guestJoined;
+
+        // Host side: the guest has joined -> start the game.
+        if (isHost && !gameActive && guestJoined && rs.status === "playing") {
+          stateSeq = rs.seq;
+          showSession("オンライン対戦中：あなたは" + colorName(hostColor) + "（先手）／ルーム " + roomCode);
+          startGame("online", hostColor);
+          return;
+        }
+        if (!gameActive) { stateSeq = rs.seq; return; }
+
+        // A rematch was accepted: a fresh game state arrived while ours is over.
+        if (gameOver && rs.status === "playing" && rs.moveCount === 0) {
+          stateSeq = rs.seq;
+          hideRematchNotice();
+          var nc = isHost ? hostColor : other(hostColor);
+          startGame("online", nc);
+          showSession("オンライン対戦中：あなたは" + colorName(nc) + "／ルーム " + roomCode);
+          return;
+        }
+
+        // Validate a newly arrived move: it must be legal on the last synced
+        // board for the side to move, and reproduce the received board exactly.
+        if (rs.moveCount === moveCount + 1 && typeof rs.lastMove === "number" && rs.lastMove >= 0) {
+          var fl = flipsFor(board, rs.lastMove, turn);
+          if (!fl) { stateSeq = rs.seq; return; }
+          var sim = board.slice();
+          sim[rs.lastMove] = turn;
+          fl.forEach(function (f) { sim[f] = turn; });
+          var same = true;
+          for (j = 0; j < 64; j++) if (sim[j] !== rs.board[j]) { same = false; break; }
+          if (!same) { stateSeq = rs.seq; return; }
+          animPlaced = rs.lastMove; animFlips = {};
+          fl.forEach(function (f) { animFlips[f] = true; });
+        }
+
+        stateSeq = rs.seq;
+        board = rs.board.slice();
+        turn = rs.turn === WHITE ? WHITE : BLACK;
+        if (Array.isArray(rs.history)) history = rs.history;
+        moveCount = rs.moveCount || 0;
+        lastMoveIdx = typeof rs.lastMove === "number" ? rs.lastMove : -1;
+        rematchBy = rs.rematchBy || "";
+
+        if (rs.rematchDeclined && rematchRequestedByMe) {
+          rematchRequestedByMe = false;
+          setBanner("相手が再戦を断りました。このまま続けるか、ロビーに戻れます。", false);
+        }
+        if (rematchBy === peerRole() && gameOver) {
+          $("rematchNoticeText").textContent = "相手が再戦を希望しています。先手・後手は入れ替わります。";
+          $("rematchNotice").classList.remove("hidden");
+        }
+
+        if (rs.status === "over") {
+          if (!gameOver) endGame(rs.resignedBy ? rs.resignedBy : null);
+          else render();
+          return;
+        }
+        render();
+        if (!gameOver && !oppStale) setBanner(turnText());
+      }
+      function onRoomGone() {
+        if (!onlineActive) return;
+        var wasPlaying = mode === "online";
+        destroyNet();
+        if (wasPlaying) {
+          gameActive = false;
+          setBanner("相手との接続が切れました。", true);
+          mode = "idle"; myColor = null;
+          updateLabels(); render();
+        }
+        showLobbyHome();
+        setNetStatus("ルームが閉じられました。新しいルームを作るか、コードを入れ直してください。", "err");
+      }
+      function setWaitStatus(text, cls, showRetry, pulse) {
+        var el = $("waitStatus");
+        el.textContent = "";
+        if (pulse) { var p = document.createElement("span"); p.className = "pulse"; el.appendChild(p); }
+        el.appendChild(document.createTextNode(text));
+        el.className = "status-line" + (cls ? " " + cls : "");
+        $("btnRetryRoom").classList.toggle("hidden", !showRetry);
+      }
+      function createRoom() {
+        destroyNet();
+        isHost = true; roomCode = genCode();
+        hostColor = BLACK; guestJoined = false;
+        rematchBy = ""; rematchDeclinedFlag = false; lastResigned = null;
+        lastHbHost = 0; lastHbGuest = 0; stateSeq = 0;
+        setNetStatus("");
+        // Show the code immediately; registration happens in the background
+        // and its state is reported separately in the waiting panel.
+        showWaiting();
+        setWaitStatus("データベースにルームを登録しています…", "", false, true);
+        registerRoom(false);
+      }
+      function registerRoom(isRetry) {
+        var attempt = ++netAttempt;
+        fbFetch("GET", null, 10000).then(function (rs) {
+          if (attempt !== netAttempt) return;
+          if (rs) {
+            if (isRetry && rs.status === "waiting" && !rs.guestJoined) {
+              // Our earlier registration actually went through; adopt it.
+              stateSeq = rs.seq || 0;
+              onlineActive = true;
+              setWaitStatus("登録できました。相手の参加を待っています…", "ok", false, true);
+              startPolling();
+              return;
+            }
+            // Code collision: pick a new code and try again.
+            roomCode = genCode();
+            $("roomCodeText").textContent = roomCode;
+            registerRoom(isRetry);
+            return;
+          }
+          board = freshBoard(); turn = BLACK;
+          history = []; moveCount = 0; lastMoveIdx = -1;
+          stateSeq = 0;
+          onlineActive = true;
+          // Only report success once the registration write has actually
+          // been answered by the database.
+          writeState("waiting").then(function () {
+            if (attempt !== netAttempt || !onlineActive) return;
+            setWaitStatus("登録できました。相手の参加を待っています…", "ok", false, true);
+            startPolling();
+          }).catch(function (err) {
+            if (attempt !== netAttempt) return;
+            onlineActive = false;
+            setWaitStatus(fbErrorText(err, "データベースへの登録"), "err", true, false);
+          });
+        }).catch(function (err) {
+          if (attempt !== netAttempt) return;
+          setWaitStatus(fbErrorText(err, "データベースへの登録"), "err", true, false);
+        });
+      }
+      function joinRoom() {
+        var code = $("inputCode").value.trim().toUpperCase();
+        if (code.length !== 6) { setNetStatus("6文字のルームコードを入力してください。", "err"); return; }
+        destroyNet();
+        isHost = false; roomCode = code;
+        hostColor = BLACK; guestJoined = false;
+        rematchBy = ""; rematchDeclinedFlag = false; lastResigned = null;
+        lastHbHost = 0; lastHbGuest = 0;
+        setNetStatus("ルーム「" + code + "」を確認しています…");
+        var attempt = ++netAttempt;
+        fbFetch("GET", null, 12000).then(function (rs) {
+          if (attempt !== netAttempt) return;
+          if (!rs) {
+            setNetStatus("ルームが見つかりませんでした。コードが正しいか、相手がルームを開いているか確認してください。", "err");
+            return;
+          }
+          if (rs.guestJoined) {
+            setNetStatus("このルームはすでに対戦中です。別のコードを試してください。", "err");
+            return;
+          }
+          if (rs.hbHost) lastHbHost = rs.hbHost;
+          hostColor = rs.hostColor === WHITE ? WHITE : BLACK;
+          stateSeq = rs.seq || 0;
+          guestJoined = true;
+          board = freshBoard(); turn = BLACK;
+          history = []; moveCount = 0; lastMoveIdx = -1;
+          onlineActive = true;
+          pushState("playing");
+          showSession("オンライン対戦中：あなたは白（後手）／ルーム " + roomCode);
+          startGame("online", WHITE);
+          startPolling();
+        }).catch(function (err) {
+          if (attempt !== netAttempt) return;
+          setNetStatus(fbErrorText(err, "ルームへの接続"), "err");
+        });
+      }
+
+      // ---------- buttons ----------
+      $("btnCreate").addEventListener("click", function () {
+        try { createRoom(); } catch (e) { showError("ルームの作成に失敗しました", e); }
+      });
+      $("btnJoin").addEventListener("click", function () {
+        try { joinRoom(); } catch (e) { showError("ルームへの参加に失敗しました", e); }
+      });
+      window.addEventListener("error", function (e) {
+        showError("エラーが発生しました", e.error || e.message || "不明なエラー");
+      });
+      $("inputCode").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { try { joinRoom(); } catch (err) { showError("ルームへの参加に失敗しました", err); } }
+      });
+      $("btnCopyCode").addEventListener("click", function () {
+        var btn = this;
+        function done() { btn.textContent = "コピーしました"; setTimeout(function () { btn.textContent = "コードをコピー"; }, 1600); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(roomCode).then(done, done);
+        } else { done(); }
+      });
+      $("btnRetryRoom").addEventListener("click", function () {
+        try {
+          setWaitStatus("再接続しています…", "", false, true);
+          registerRoom(true);
+        } catch (e) { showError("再試行に失敗しました", e); }
+      });
+      $("btnCancelRoom").addEventListener("click", function () {
+        if (onlineActive) deleteRoom();
+        destroyNet(); mode = "idle"; showLobbyHome(); setNetStatus("");
+      });
+      $("btnLocal").addEventListener("click", function () {
+        destroyNet();
+        showSession("同じ画面で2人対戦中（黒＝プレイヤー1／白＝プレイヤー2）");
+        startGame("local", null);
+      });
+      $("btnCpu").addEventListener("click", function () {
+        destroyNet();
+        showSession("CPU対戦中（あなたは黒・先手）");
+        startGame("cpu", BLACK);
+      });
+      $("btnLeave").addEventListener("click", function () {
+        mode = "idle"; myColor = null; gameActive = false; gameOver = false;
+        if (onlineActive) deleteRoom();
+        destroyNet();
+        board = freshBoard(); history = []; moveCount = 0; lastMoveIdx = -1;
+        showLobbyHome(); setNetStatus("");
+        updateLabels(); render();
+        setBanner("モードを選ぶと対戦が始まります");
+      });
+      $("btnResign").addEventListener("click", function () {
+        if (!gameActive || gameOver) return;
+        $("confirmResign").classList.remove("hidden");
+      });
+      $("btnResignNo").addEventListener("click", hideConfirmResign);
+      $("btnResignYes").addEventListener("click", function () {
+        hideConfirmResign();
+        if (!gameActive || gameOver) return;
+        if (mode === "online") {
+          endGame(myColor);
+          pushState("over");
+        } else if (mode === "cpu") {
+          endGame(BLACK);
+        } else if (mode === "local") {
+          endGame(turn);
+        }
+      });
+      $("btnRematch").addEventListener("click", function () {
+        if (mode === "online") {
+          if (!onlineActive) return;
+          if (rematchRequestedByMe) return;
+          rematchRequestedByMe = true;
+          rematchBy = myRole();
+          pushState("over");
+          setBanner("相手に再戦を申し込みました。返事を待っています…");
+        } else if (mode === "local" || mode === "cpu") {
+          startGame(mode, mode === "cpu" ? BLACK : null);
+        }
+      });
+      $("btnRematchAccept").addEventListener("click", function () {
+        hideRematchNotice();
+        if (mode !== "online" || !onlineActive) return;
+        hostColor = other(hostColor);
+        var myNew = isHost ? hostColor : other(hostColor);
+        startGame("online", myNew);
+        pushState("playing");
+        showSession("オンライン対戦中：あなたは" + colorName(myNew) + "／ルーム " + roomCode);
+      });
+      $("btnRematchDecline").addEventListener("click", function () {
+        hideRematchNotice();
+        if (mode === "online" && onlineActive) {
+          rematchBy = "";
+          rematchDeclinedFlag = true;
+          pushState("over");
+        }
+      });
+
+      window.addEventListener("beforeunload", function () {
+        if (onlineActive && roomCode) {
+          try { fetch(fbRoomUrl(), { method: "DELETE", keepalive: true }); } catch (e) {}
+        }
+      });
+
+      // ---------- init ----------
+      board = freshBoard();
+      updateLabels();
+      render();
+    })();
+    </script>
+  </body>
+</html>
